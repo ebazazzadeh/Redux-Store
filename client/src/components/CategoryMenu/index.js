@@ -7,9 +7,15 @@ import {
 } from '../../utils/actions';
 import { QUERY_CATEGORIES } from '../../utils/queries';
 import { idbPromise } from '../../utils/helpers';
+// import redux
+import { useSelector, useDispatch } from "react-redux";
 
 function CategoryMenu() {
-  const [state, dispatch] = useStoreContext();
+  //const [state, dispatch] = useStoreContext();
+
+    //use state, useDispatch
+  const state = useSelector(state => state);
+  const dispatch = useDispatch(); 
 
   const { categories } = state;
 
