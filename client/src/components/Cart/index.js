@@ -1,39 +1,28 @@
-import React, { useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { useLazyQuery } from '@apollo/client';
-import { QUERY_CHECKOUT } from '../../utils/queries';
-import { idbPromise } from '../../utils/helpers';
-import CartItem from '../CartItem';
-import Auth from '../../utils/auth';
-//import { useStoreContext } from '../../utils/GlobalState';
-import { TOGGLE_CART, ADD_MULTIPLE_TO_CART } from '../../utils/actions';
-import './style.css';
+import React, { useEffect } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { useLazyQuery } from "@apollo/react-hooks";
+import { QUERY_CHECKOUT } from "../../utils/queries";
+import { idbPromise } from "../../utils/helpers";
+import CartItem from "../CartItem";
+import Auth from "../../utils/auth";
+import "./style.css";
+import { TOGGLE_CART, ADD_MULTIPLE_TO_CART } from "../../utils/redux/actions";
+// import { useStoreContext } from "../../utils/GlobalState";
+import { useSelector, useDispatch } from "react-redux";
 
-// importing redux
-import { useSelector, useDispatch } from 'react-redux';
-
-const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
+const stripePromise = loadStripe("pk_test_TYooMQauvdEDq54NiTphI7jx");
 
 const Cart = () => {
-  // use state 
-  const state = useSelector(state => state);
-  
-  const dispatch = useDispatch();
-
+  // The data variable will contain the checkout session,
+  // but only after the query is called with the getCheckout() function.
   // const [state, dispatch] = useStoreContext();
   const [getCheckout, { data }] = useLazyQuery(QUERY_CHECKOUT);
-
-  // useEffect(() => {
-  //   if (data) {
-  //     stripePromise.then((res) => {
-  //       res.redirectToCheckout({ sessionId: data.checkout.session });
-  //     });
-  //   }
-  // }, [data]);
+  const state = useSelector((state) => state);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     async function getCart() {
-      const cart = await idbPromise('cart', 'get');
+      const cart = await idbPromise("cart", "get");
       dispatch({ type: ADD_MULTIPLE_TO_CART, products: [...cart] });
     }
 
@@ -41,6 +30,14 @@ const Cart = () => {
       getCart();
     }
   }, [state.cart.length, dispatch]);
+
+  useEffect(() => {
+    if (data) {
+      stripePromise.then((res) => {
+        res.redirectToCheckout({ sessionId: data.checkout.session });
+      });
+    }
+  }, [data]);
 
   function toggleCart() {
     dispatch({ type: TOGGLE_CART });
@@ -51,7 +48,7 @@ const Cart = () => {
     state.cart.forEach((item) => {
       sum += item.price * item.purchaseQuantity;
     });
-    return sum.toFixed(2);
+    return sum;
   }
 
   function submitCheckout() {
@@ -62,21 +59,13 @@ const Cart = () => {
         productIds.push(item._id);
       }
     });
-
     getCheckout({
       variables: { products: productIds },
     });
   }
 
-  // stripe
-  useEffect(() => {
-    if (data) {
-      stripePromise.then((res) => {
-        res.redirectToCheckout({ sessionId: data.checkout.session });
-      });
-    }
-  }, [data]);
-  
+  console.log(state);
+
   if (!state.cartOpen) {
     return (
       <div className="cart-closed" onClick={toggleCart}>
@@ -98,10 +87,8 @@ const Cart = () => {
           {state.cart.map((item) => (
             <CartItem key={item._id} item={item} />
           ))}
-
           <div className="flex-row space-between">
             <strong>Total: ${calculateTotal()}</strong>
-
             {Auth.loggedIn() ? (
               <button onClick={submitCheckout}>Checkout</button>
             ) : (
@@ -120,5 +107,4 @@ const Cart = () => {
     </div>
   );
 };
-
 export default Cart;
